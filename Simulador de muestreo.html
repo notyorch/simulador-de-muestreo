@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Muestreo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid black;
+            margin: 0 auto;
+            display: block;
+        }
+        select, input, button {
+            padding: 5px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h2>Simulador de Muestreo</h2>
+    <p>El lienzo muestra una población de 100 individuos. Para el muestreo estratificado, la población está dividida en dos estratos (mitad superior e inferior). Selecciona una técnica y haz clic en "Generar Muestra" para verla en acción.</p>
+    <div class="controls">
+        <label>Técnica de muestreo:</label>
+        <select id="technique">
+            <option value="simple">Aleatorio Simple</option>
+            <option value="systematic">Sistemático</option>
+            <option value="stratified">Estratificado</option>
+        </select>
+        <label>Tamaño de muestra (n):</label>
+        <input type="number" id="sampleSize" min="1" max="100" value="10">
+        <button onclick="generateSample()">Generar Muestra</button>
+    </div>
+    <canvas id="populationCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('populationCanvas');
+        const ctx = canvas.getContext('2d');
+        const populationSize = 100;
+        let population = Array.from({ length: populationSize }, (_, i) => ({ id: i, selected: false }));
+
+        function drawPopulation() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const gridSize = Math.sqrt(populationSize); // 10x10 grid
+            const cellSize = canvas.width / gridSize; // 40px per cell
+
+            population.forEach((individual, i) => {
+                const x = (i % gridSize) * cellSize;
+                const y = Math.floor(i / gridSize) * cellSize;
+                ctx.fillStyle = individual.selected ? 'blue' : (i < populationSize / 2 ? 'lightgreen' : 'lightcoral');
+                ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+            });
+        }
+
+        function generateSample() {
+            const technique = document.getElementById('technique').value;
+            const sampleSize = parseInt(document.getElementById('sampleSize').value);
+            if (sampleSize < 1 || sampleSize > 100) {
+                alert('El tamaño de la muestra debe estar entre 1 y 100.');
+                return;
+            }
+
+            // Reset selection
+            population.forEach(p => p.selected = false);
+
+            if (technique === 'simple') {
+                // Simple Random Sampling
+                let indices = [...Array(populationSize).keys()];
+                for (let i = 0; i < sampleSize; i++) {
+                    const randomIndex = Math.floor(Math.random() * indices.length);
+                    population[indices[randomIndex]].selected = true;
+                    indices.splice(randomIndex, 1);
+                }
+            } else if (technique === 'systematic') {
+                // Systematic Sampling
+                const step = Math.floor(populationSize / sampleSize);
+                const start = Math.floor(Math.random() * step);
+                for (let i = start; i < populationSize; i += step) {
+                    if (population[i]) population[i].selected = true;
+                }
+            } else if (technique === 'stratified') {
+                // Stratified Sampling (two strata)
+                const stratumSize = populationSize / 2; // 50 individuals per stratum
+                const samplePerStratum = Math.floor(sampleSize / 2);
+                let indices = [...Array(stratumSize).keys()];
+
+                // First stratum (indices 0-49)
+                for (let i = 0; i < samplePerStratum; i++) {
+                    const randomIndex = Math.floor(Math.random() * indices.length);
+                    population[indices[randomIndex]].selected = true;
+                    indices.splice(randomIndex, 1);
+                }
+
+                // Second stratum (indices 50-99)
+                indices = [...Array(stratumSize).keys()];
+                for (let i = 0; i < samplePerStratum; i++) {
+                    const randomIndex = Math.floor(Math.random() * indices.length);
+                    population[indices[randomIndex] + stratumSize].selected = true;
+                    indices.splice(randomIndex, 1);
+                }
+            }
+
+            drawPopulation();
+        }
+
+        // Initial draw
+        drawPopulation();
+    </script>
+</body>
+</html>
